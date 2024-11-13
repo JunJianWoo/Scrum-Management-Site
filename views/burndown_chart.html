@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Burndown Chart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src = /controllers/idle_users.js></script>
+    <style>
+        .container-fluid {
+            margin-left: 10%;
+        }
+        /* Customize form and button styles */
+        #chartForm {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f7f7f7; /* Light gray background */
+        }
+        .form-control {
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background-color: #007bff; /* Blue button color */
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+            border-color: #0056b3;
+        }
+        /* Customize chart border */
+        #burnDownChart {
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            background-color: #fff; /* White background */
+        }
+    </style>
+
+    <script src="../controllers/board-controller.js"></script>
+</head>
+<body>
+    <!-- Header containing links to all pages -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">ScrumConnect</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-item nav-link" href="/board">Product Backlog</a>
+                    <a class="nav-link" href="/sprint">Sprint</a>
+                    <a class="nav-item nav-link active" href="#">Burndown Chart</a>
+                    <a class="nav-item nav-link" href="/group">Team</a>
+                    <a class="nav-link" href="/my-tasks">My Tasks</a>
+                    <a class="nav-item nav-link" href="/settings">Settings</a>
+                    <a class="nav-link" href="/login">Login</a>
+                    
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-dark" id="btn-zoom-in" onclick="chooseZoom('+')">Zoom in</button>
+        <button type="button" class="btn btn-secondary" id="btn-zoom-out" onclick="chooseZoom('-')">Zoom out</button>
+    </nav>
+
+    <form id="chartForm" style="margin: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+        <label for="daysInput">Number of Days in Sprint:</label>
+        <input type="number" id="daysInput" min="1" placeholder="Enter number of days in sprint" class="form-control">
+        <br>
+
+        <label for="esdaysInput">Days Passed:</label>
+        <input type="number" id="esdaysInput" min="1" placeholder="Enter total number of days passed" class="form-control">
+        <br>
+
+
+        <button type="button" onclick="updateChart()" class="btn btn-primary">Update Chart</button>
+    </form>
+
+    <div class="container">
+        <div class="col-md-8">
+            <!-- Use a fixed-sized container for the chart -->
+            <canvas id="burnDownChart" width="1200" height="600" style="border: 1px solid #ccc; margin-top: 20px;"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        // Actual data array
+        //const originalData = burndownChartValues(); // Replace with your actual data
+        const originalData = [<%= burndownChartValues%>]
+        let actualData = [...originalData];
+        
+        
+        function updateChart() {
+            const days = parseInt(document.getElementById('daysInput').value);
+            const daysPassed = parseInt(document.getElementById('esdaysInput').value);
+            const hours = actualData[0];
+            const y_value = 100
+            const progress = (hours / days)/hours * 100;
+            //actualData = [...originalData];
+            actualData = originalData.map(value => (value / originalData[0]) * 100);
+            
+            
+            if (daysPassed < originalData.length - 1){
+                window.alert(`ERROR\nDays Passed cannot be less than the actual progress made on the board.\nA task has been completed on day ${daysPassed+1}.`);
+                return;
+            }
+
+            // Remains the same progress until the task has been done
+            else if(actualData.length < daysPassed+1) {
+                const diff = (daysPassed - actualData.length) + 1;
+                const lastValue = actualData[actualData.length - 1];
+                for (let i = 0; i < diff; i++) {
+                    actualData.push(lastValue);
+                }
+            }
+            
+
+            // Generate idealData as an array from the user input hours to 0
+            const idealData = Array.from({ length: days + 1 }, (_, i) => y_value - i * progress);
+            const daysList = Array.from({ length: days + 1 }, (_, i) => i);
+            const labels = idealData.map((hours, i) => `Days${daysList[i]}`);
+            
+
+            // Destroy the existing chart to prevent issues with resizing
+            if (chart) {
+                chart.destroy();
+            }
+
+            // Create a new chart with fixed dimensions
+            const ctx = document.getElementById('burnDownChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Ideal',
+                            borderColor: 'blue',
+                            data: idealData,
+                        },
+                        {
+                            label: 'Actual',
+                            borderColor: 'red',
+                            data: actualData, // Use the predefined actual data array
+                        },
+                    ],
+                },
+                options: {
+                    responsive: false, // Disable responsiveness
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            min: 0,
+                            max: days,
+                            title: {
+                                display: true,
+                                text: 'Days in Sprint',
+                            }
+                        },
+                        y: {
+                            min: 0,  // Set the minimum value for the y-axis
+                            max: 100,  // Set the maximum value for the y-axis (assuming your data represents percentages)
+                            ticks: {
+                                stepSize: 10,  // Set the step size to your preferred value
+                                callback: function (value) {
+                                    return value + "%";  // Append "%" to the tick labels
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Estimated Efforts (%)'  // Update the y-axis title
+                            }
+                        },
+                    },
+                },
+            });
+        }
+
+        // Initial chart creation
+        updateChart();
+    </script>
+</body>
+</html>

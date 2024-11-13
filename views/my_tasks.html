@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Settings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script defer src = /controllers/personal_scrumboard.js></script>
+    <script defer src = /controllers/idle_users.js></script>
+    <style>
+    .container-fluid {
+        margin-left: 10%;
+    }
+    </style>
+</head>
+<body id="bodyyy">
+  <!-- Header containing links to all pages -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="/">ScrumConnect</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+            <div class="navbar-nav">
+              <a class="nav-link" href="/board">Product Backlog</a>
+              <a class="nav-link" href="/sprint">Sprint</a>
+              <a class="nav-link" href="/burndown-chart">Burndown Chart</a>
+              <a class="nav-link" href="/group">Team</a>
+              <a class="nav-link active">My Tasks</a>
+              <a class="nav-link" href="/settings">Settings</a>
+              <a class="nav-link" href="/login">Login</a>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-dark" id="btn-zoom-in" onclick="chooseZoom('+')">Zoom in</button>
+        <button type="button" class="btn btn-secondary" id="btn-zoom-out" onclick="chooseZoom('-')">Zoom out</button>
+    </nav>
+  <!-- Personal Scrum Board -->
+  <button type="button" class="btn btn-primary" id="btn-test" onclick="refreshBoard()" style="margin: 10px">Refresh</button>
+  <div id="scrumboard-container" style="display: flex; justify-content: space-around; flex-wrap: wrap;"></div>
+</body>
+</html>

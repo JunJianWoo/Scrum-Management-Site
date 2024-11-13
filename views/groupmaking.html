@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script defer src=/controllers/groupmaking.js></script>
+    <script defer src = /controllers/idle_users.js></script>
+    <style>
+    .container-fluid {
+        margin-left: 10%;
+    }
+    </style>
+  </head>
+  <body>
+    <!-- Header containing links to all pages -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+      <div class="container-fluid" style="margin-left:10%">
+        <a class="navbar-brand" href="/">ScrumConnect</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+          <div class="navbar-nav">
+            <a class="nav-link" href="/board">Product Backlog</a>
+            <a class="nav-link" href="/sprint">Sprint</a>
+            <a class="nav-link" href="/burndown-chart">Burndown Chart</a>
+            <a class="nav-link active">Team</a>
+            <a class="nav-link" href="/my-tasks">My Tasks</a>
+            <a class="nav-link" href="/settings">Settings</a>
+            <a class="nav-link" href="/login">Login</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <!-- <div class="container">
+        <form>
+
+            <label>Group Name</label>
+            <input type="text" placeholder="Your Group Name">
+            <label>First Name</label>
+            <input type="text" placeholder="Your First Name">
+            <label>Last Name</label>
+            <input type="text" placeholder="Your Last Name">
+            <label>Email</label>
+            <input type="email" placeholder="Your Email">
+            <input type="submit" value="submit">
+
+        </form>
+
+    </div> -->
+
+
+
+
+
+    <h1>Group Maker</h1>
+    <!-- <div class="input-container">
+      <input type="text" id="nameInput" placeholder="Enter a name">
+      <input type="email" id="emailInput" placeholder="Enter an email">
+      <button id="addInfoBtn">Add Info</button>
+  </div>
+
+    <div id="infoList"></div>
+
+
+    <input type="text" id="groupNameInput" placeholder="Enter a group name">
+    <button id="addToGroupBtn">Add People to Group</button>
+  <div id="groupContainer"></div>  -->
+  <h2>Make a group</h2>
+  <div class="input-container">
+    <input type="text" id="new_group_name_to_make" placeholder="Make a group">
+    <button class="btn btn-primary" onclick="newCreateGroup()">Make Group</button>
+  </div>
+
+
+
+<!-- Add Person to Group Section -->
+<div class="input-container">
+  <input type="text" id="group_name" placeholder="Enter a group name">
+  <input type="text" id="first_name" placeholder="Enter a person's first name">
+  <input type="text" id="last_name" placeholder="Enter a person's last name">
+  <input type="email" id="email" placeholder="Enter a person's email">
+  <input type="email" id="user_name" placeholder="Enter a person's username">
+  <button class="btn btn-primary" onclick="newAddToGroup()">Add Person to Group</button>
+</div>
+
+<!-- Remove Person from Group Section -->
+<div class="input-container">
+  <input type="text" id="group_name_to_remove" placeholder="Enter a group name">
+  <input type="text" id="first_name_to_remove" placeholder="Enter the person's first name to remove">
+  <input type="text" id="last_name_to_remove" placeholder="Enter the person's last name to remove">
+  <button class="btn btn-primary" onclick="newMemberRemoval()">Remove person from group</button>
+</div>
+
+<!-- Display Groups Section -->
+<h2>Display Groups</h2>
+<div class="input-container">
+  <input type="text" id="group_name_display" placeholder="Enter a group">
+  <button class="btn btn-primary" onclick="newDisplayGroup()">Display Group</button>
+  <div id="groupContainer"></div>
+</div>
+
+
+
+
+    <!-- <script defer src="../app.js"></script> -->
+
+    <link href="/bootstrap.min.css" rel="stylesheet" />
+  </body>
+
+</html>
+
+

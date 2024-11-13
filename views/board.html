@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title> Scrum Board </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <style>
+        .container-fluid {
+            margin-left: 10%;
+        }
+        .tall-card{
+            padding-bottom: 35%;
+            background-color: #ebebeb;
+        }
+        .arrow-btn {
+            font-size: 13.5px; 
+            padding: 1px 8.5px; 
+            float: left;
+        }
+        .extraInfo-btn {
+            font-size: 12px;
+            padding: 3px 5px;
+        }
+        .delete-btn {
+            font-size: 12.5px; 
+            padding: 3px 8px; 
+            float: right;
+        }
+        .custom-list-group {
+            padding-left: 10;
+        }
+        .custom-form-control {
+            width: 124%;
+        }
+        .category-header{
+            text-align: center;
+            font-weight: bold;
+        }
+        .item{
+            font-size: 15.5px;
+            padding-bottom: 6%;
+            float: left;
+        }
+        .textarea-editable{
+            overflow: hidden;
+            resize: none;
+            border: none;
+            outline: none;
+            word-break: break-all;
+        }
+        .column-size{
+            width: 25%;
+            padding-right: 0.5%;
+            padding-left: 0.5%;
+        }
+        .main-task{
+            padding-left: 10px;
+            padding-top: 7.5px;
+            padding-bottom: 7.5px;
+            font-weight: bold;
+            border-color: grey;
+            border-width: 3.5px;
+        }
+        .supertask-edit-button{
+            border-width: 0px;
+            background-color:white; 
+            padding-left: 0%;
+            padding-top: 1%;
+            padding-right: 10px; 
+        }
+    </style>
+    <script defer src = /controllers/idle_users.js></script>
+    <script>
+        // Add Item Modal Setup
+        $(document).ready(function(){
+            $('#addItemModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) ,
+                    colString = button.data('column_name') ,
+                    link = button.data('link') ,
+                    modal = $(this) ,
+                    title = 'Add ' + ((!link.includes("Subtask"))?"Item ":"a Subtask " )+ "to " + colString ;
+
+                modal.find('.modal-title').text(title)
+
+                modal.find('form').attr('action',link)
+                if (colString == "Completed"){
+                    $('#completionDayAdd').css("display","inline")
+                    $('#completionDayAdd').find("#completionDay").prop("required",true)
+                } else {
+                    $('#completionDayAdd').css("display","none")
+                    $('#completionDayAdd').find("#completionDay").prop("required",false)
+                }
+            });
+        });
+
+        // Update Supertask Modal Setup
+        $(document).ready(function(){
+
+            $('#updateSupertaskModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget) ,
+                    priority = button.data('priority') ,
+                    col = button.data('location') ,
+                    assignee = button.data('assignee') ,
+                    estimate = button.data('estimate') ,
+                    j = button.data('j') ,
+                    form = $(this).find('form');
+
+                // Setup initial values of the form
+                form.find(`[name=${col}]`).prop("selected", true)
+                form.find("#outerIndex").attr("value",j)
+                form.find("[name='estimate']").attr("value",estimate)
+                form.find(`[name=${priority}]`).prop("selected", true)
+                form.find(`[name='${assignee}']`).prop("selected",true)
+
+                // Setup delete button
+                $(this).find("#removeSupertaskButton").attr('href',`/removeSupertask?outerIndex=${j}`)
+            });
+        });
+
+        // Shows the completionDay input section if update Location for supertask is selected to be completed section
+        function addCompletionDay(){
+            var isCompleted = $('#updateSupertaskModal').find('form').find('[name=completed]').is(':selected')
+            if (isCompleted){
+                $('#completionDaySupertask').css("display","inline")
+                $('#completionDaySupertask').find("#completionDay").prop("required",true)
+            } else {
+                $('#completionDaySupertask').css("display","none")
+                $('#completionDaySupertask').find("#completionDay").prop("required",false)
+            }
+        }
+
+        // Move To Complete Modal Setup
+        $(document).ready(function(){
+            $('#completeForm').on("click", function(event){
+                var completionDay = $('#completeModal').find('#completionDay').val() ,
+                    button = $('#completeButton') ,
+                    link = button.data('link') ;
+
+                let isValid = $('#completeModal').find('#completionDay')[0].checkValidity()
+                if (!isValid){
+                    $('#completeModal').find('#completionDay')[0].reportValidity()
+                } else {
+                    var base_url = window.location.origin;
+                    window.location = base_url + link + `&completionDay=${completionDay}`
+                }
+            })
+        })
+
+        // Function that submits the form only if ENTER is pressed
+        function submitOnEnter(event,form){
+            if (event.keyCode == 13){
+                form.submit()
+            }
+        }
+
+        // Set all text size area to the height to enable all words to be shown
+        function initialiseAllTextAreaSize(){
+            function setRows(htmlItem){
+                
+                // Reinitialise height to get better accuracy of height
+                htmlItem.style.height = "1px"
+                htmlItem.style.height = htmlItem.scrollHeight + "px"
+
+                // Set number of rows to be the required amount
+                htmlItem.rows = htmlItem.scrollHeight/Number(window.getComputedStyle(htmlItem).lineHeight.slice(0,-2))
+            }
+            document.getElementsByName("description")
+                .forEach((ele)=> setRows(ele))    
+        }
+
+        // Saves scrolled position
+        $(window).scroll(function() {
+            sessionStorage.scrollTop = $(this).scrollTop();
+            });
+
+        // Return to the previously saved scroll position
+        $(document).ready(function() {
+            if (sessionStorage.scrollTop != "undefined") {
+                $(window).scrollTop(sessionStorage.scrollTop);
+            }
+        });
+    </script>
+</head> 
+<body onresize="initialiseAllTextAreaSize()">
+    <!-- Header containing links to all pages -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">ScrumConnect</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active">Product Backlog</a>
+                    <a class="nav-link" href="/sprint">Sprint</a>
+                    <a class="nav-link" href="/burndown-chart">Burndown Chart</a>
+                    <a class="nav-link" href="/group">Team</a>
+                    <a class="nav-link" href="/my-tasks">My Tasks</a>
+                    <a class="nav-link" href="/settings">Settings</a>
+                    <a class="nav-link" href="/login">Login</a>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-dark" id="btn-zoom-in" onclick="chooseZoom('+')">Zoom in</button>
+        <button type="button" class="btn btn-secondary" id="btn-zoom-out" onclick="chooseZoom('-')">Zoom out</button>
+    </nav>
+    </br>
+    
+    <div class="container-fluid" style="margin-left: 8%; float: left; width: 84%">
+    <!-- The section headers -->
+        <div class="row">
+            <% for(const x of ["Product Backlog","Sprint Backlog","Sprint To-Do","Completed"]){ %>
+                <div class="col column-size">
+                <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title category-header"><%= x %></h2>
+                </div>
+                </div>
+                </div>
+            <% } %>
+        </div>
+        </br>
+
+        <% for (let j = 0; j < record.length; j++){ 
+            let entry = record[j] %>
+            <div class="row">
+            <div class="col" style="width: 100%; padding-left: 0.5%; padding-right: 0.5%; padding-top: 1.5%">
+            <div class="card main-task">
+                <% var table
+                if (entry.subtaskTable){ 
+                    table = entry.table 
+                    let index = ["Highest","High","Medium","Low","Lowest"].indexOf(entry.supertask.priority) 
+                    let color = ["red","orange","#07944F","#00A1FF","#00E6CA"][index] 
+                    let prettifiedLocation = ["Sprint Backlog","Product Backlog","Sprint-To-Do","Completed"][["sprintBacklog","productBacklog","sprintToDo","completed"].indexOf(entry.supertask.location)] %>
+                    <div class="row">
+                        <div class="col-8">
+                            <form action="/updateSupertask", method="POST">
+                                <div class="form-group row">
+                                    <textarea autocomplete="off" name="description" id="description" class="form-control textarea-editable" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"' style="font-weight: bold; margin-left: 1%" required><%= entry.supertask.title%></textarea> 
+                                    <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="col-4" style="text-align: right">
+                            <span class="badge" style="background-color: lightblue;color:black; font-size: small"><%= entry.supertask.estimate %>hr</span>
+                            <span class="badge" style="background-color: <%= color%>;font-size:small"><%= entry.supertask.priority%></span>
+                            <span class="badge" style="background-color: lightgrey;color:black; font-size: small"><%= prettifiedLocation %></span>
+                            <span class="badge" style="background-color: yellow;color:black; font-size: small"><%= entry.supertask.assignee %></span>
+
+                            <button type="button" class="btn supertask-edit-button" data-bs-toggle="modal" data-bs-target="#updateSupertaskModal" data-j="<%= j%>" data-estimate="<%= entry.supertask.estimate%>" data-priority="<%= entry.supertask.priority%>" data-location="<%= entry.supertask.location%>" data-assignee="<%= entry.supertask.assignee%>">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                                    <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+                                </svg>
+                            </button>
+                        </div>  
+                    </div>
+                    
+                <% } else { 
+                    table = entry %>
+                    Other Items
+                <% } %> 
+            </div>
+            </div>
+            </div>
+            
+        <div class="row">
+    <!-- Product Backlog SECTION  -------------------------->
+            <div class="col column-size">
+            <div class="card tall-card">
+            <ul class="list-group list-group-flush">
+                <% for(let i = 0; i < table.productBacklog.length; i++){ 
+                    let item = table.productBacklog[i]
+                    let link = "/" + item.priority + ".png" 
+                    let index = ["Highest","High","Medium","Low","Lowest"].indexOf(item.priority) 
+                    let color = ["red","orange","#07944F","#00A1FF","#00E6CA"][index] 
+                    let moveRightRoute = `/move?innerIndex=${i}&from=productBacklog&to=sprintBacklog${ (entry.subtaskTable)?"&outerIndex="+j:"" }`
+                    let deleteRoute = `/remove?innerIndex=${i}&from=productBacklog${ (entry.subtaskTable)?"&outerIndex="+j:"" }`  %>
+                    <div class="card border-light">
+                    <li class="list-group-item item">
+                        <span class="badge" style="background-color: <%= color%>"><%= item.priority%></span>
+                        <form action="/changeItem", method="POST">
+                        <div class="form-group row">
+                            <textarea autocomplete="off" name="description" id="description" class="form-control textarea-editable" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"' required><%= item.title%></textarea> 
+                            <input type="hidden" name="from" id="from" value="productBacklog">
+                            <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                            <% if (entry.subtaskTable){ %>
+                                <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                            <% } %>
+                        </div>
+                        </form>
+                            
+                    
+                        </br></br> 
+
+                        <button class="btn extraInfo-btn" style="background-color:burlywood" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePB<%= j%>-<%=i%>" aria-expanded="false" aria-controls="collapseExample">
+                            Extra Info
+                        </button> 
+
+                        <!-- Collapsible Extra Info Section -->
+                        <div class="collapse" id="collapsePB<%= j%>-<%=i%>">
+                        <div class="card card-body">   
+                            <div class="row">
+                                <div class="col-md-9">                                                       
+                                    <a type="button" class="btn btn-primary arrow-btn" href="<%= moveRightRoute%>">→</a>                                                   
+                                </div>
+                                <div class="col-md-3">
+                                    <a type="button" class="btn btn-danger delete-btn" href="<%= deleteRoute%>">Remove</a>   
+                                </div>
+                            </div> 
+                            
+                            <form style="padding-top: 10%" action="/changeItem", method="POST">
+                                <div class="form-group row">
+                                    <label for="priority" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Priority</label>  
+                                    <div class="col-md-7">                      
+                                        <select class="form-select form-select-sm" name = "priority" onchange="this.form.submit()">
+                                            <% for(const opt of ["Highest","High","Medium","Low","Lowest"]){ 
+                                                if (item.priority == opt){ %>
+                                                <option selected><%= opt %></option>
+                                            <% } else { %>
+                                                <option><%= opt %></option>
+                                            <% }} %>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="estimate" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Estimate(hrs)</label>  
+                                    <div class="col-md-7">                      
+                                        <input type="number" class="form-control" step="any" value="<%= item.estimate%>" min="0" name="estimate" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)"> 
+                                    </div>
+                                </div>
+                                <div class="form-group row" style="padding-top:3.5%;">
+                                    <label for="assignee" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Assignee</label>  
+                                    <div class="col-md-7">
+                                        <% if (isScrumMaster){ %>                      
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()">
+                                        <% } else { %>
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()" disabled>
+                                        <% } for(const member of teamList){ 
+                                            if (member == item.assignee){ %>
+                                                <option selected><%= member %></option>
+                                            <% } else { %>
+                                                <option><%= member %></option>
+                                            <% } %>
+                                        <% } %>
+                                        </select>  
+                                    </div>
+                                </div>
+                                <!-- hidden parameters -->
+                                <input type="hidden" name="from" id="from" value="productBacklog">
+                                <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                                <% if (entry.subtaskTable){ %>
+                                    <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                                <% } %>
+                            </form>
+                            <% if (!entry.subtaskTable){ %>
+                                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                                    data-bs-target="#addItemModal" data-column_name="Product Backlog" data-link="<%=`/addSubtask?innerIndex=${i}&from=productBacklog`%>"> + Add Subtask</button>
+                            <% } %>
+                        </div>
+                        </div>
+                    </li> 
+                    </div>     
+                <% } %>
+                <!-- Adding Item Form -->
+                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                    data-bs-target="#addItemModal" data-column_name="Product Backlog" data-link="<%= (entry.subtaskTable)?`/add?to=productBacklog&outerIndex=${j}`:`/add?to=productBacklog`%>">
+                    <%= (entry.subtaskTable)?" + Add Subtask":" + Add Item"%></button>
+            </ul>    
+            </div>
+            </div>
+    <!-- Sprint Backlog SECTION  -------------------------->
+            <div class="col column-size">
+            <div class="card tall-card">
+            <ul class="list-group list-group-flush">
+                <% for(let i = 0; i < table.sprintBacklog.length; i++){ 
+                    let item = table.sprintBacklog[i]
+                    let link = "/" + item.priority + ".png" 
+                    let index = ["Highest","High","Medium","Low","Lowest"].indexOf(item.priority) 
+                    let color = ["red","orange","#07944F","#00A1FF","#00E6CA"][index] 
+                    let moveLeftRoute = `/move?innerIndex=${i}&from=sprintBacklog&to=productBacklog${ (entry.subtaskTable)?"&outerIndex="+j:"" }`
+                    let moveRightRoute = `/move?innerIndex=${i}&from=sprintBacklog&to=sprintToDo${ (entry.subtaskTable)?"&outerIndex="+j:"" }`
+                    let deleteRoute = `/remove?innerIndex=${i}&from=sprintBacklog${ (entry.subtaskTable)?"&outerIndex="+j:"" }`  %>
+                    <div class="card border-light">
+                    <li class="list-group-item item">
+                        <span class="badge" style="background-color: <%= color%>"><%= item.priority%></span>
+                        <form action="/changeItem", method="POST">
+                        <div class="form-group row">
+                            <textarea autocomplete="off" name="description" id="description" class="form-control textarea-editable" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"' required><%= item.title%></textarea> 
+                            <input type="hidden" name="from" id="from" value="sprintBacklog">
+                            <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                            <% if (entry.subtaskTable){ %>
+                                <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                            <% } %>
+                        </div>
+                        </form>
+                            
+                        </br></br> 
+
+                        <button class="btn extraInfo-btn" style="background-color:burlywood" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSB<%= j%>-<%=i%>" aria-expanded="false" aria-controls="collapseExample">
+                            Extra Info
+                        </button> 
+
+                        <!-- Collapsible Extra Info Section -->
+                        <div class="collapse" id="collapseSB<%= j%>-<%=i%>">
+                        <div class="card card-body">   
+                            <div class="row">
+                                <div class="col-md-9">           
+                                    <a type="button" class="btn btn-primary arrow-btn" href="<%= moveLeftRoute%>">←</a>                                            
+                                    <a type="button" class="btn btn-primary arrow-btn" href="<%= moveRightRoute%>">→</a>                                                   
+                                </div>
+                                <div class="col-md-3">
+                                    <a type="button" class="btn btn-danger delete-btn" href="<%=deleteRoute%>">Remove</a>   
+                                </div>
+                            </div> 
+                            
+                            <form style="padding-top: 10%" action="/changeItem", method="POST">
+                                <div class="form-group row">
+                                    <label for="priority" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Priority</label>  
+                                    <div class="col-md-7">                      
+                                        <select class="form-select form-select-sm" name = "priority" onchange="this.form.submit()">
+                                            <% for(const opt of ["Highest","High","Medium","Low","Lowest"]){ 
+                                                if (item.priority == opt){ %>
+                                                <option selected><%= opt %></option>
+                                            <% } else { %>
+                                                <option><%= opt %></option>
+                                            <% }} %>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="estimate" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Estimate(hrs)</label>  
+                                    <div class="col-md-7">                      
+                                        <input type="number" class="form-control" step="any" value="<%= item.estimate%>" min="0" name="estimate" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)"> 
+                                    </div>
+                                </div>
+                                <div class="form-group row" style="padding-top:3.5%;">
+                                    <label for="assignee" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Assignee</label>  
+                                    <div class="col-md-7">                      
+                                        <% if (isScrumMaster){ %>                      
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()">
+                                        <% } else { %>
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()" disabled>
+                                        <% } for(const member of teamList){ 
+                                            if (member == item.assignee){ %>
+                                                <option selected><%= member %></option>
+                                            <% } else { %>
+                                                <option><%= member %></option>
+                                            <% } %>
+                                        <% } %>
+                                        </select>  
+                                    </div>
+                                </div>
+                                <!-- hidden parameters -->
+                                <input type="hidden" name="from" id="from" value="sprintBacklog">
+                                <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                                <% if (entry.subtaskTable){ %>
+                                    <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                                <% } %>
+                            </form>
+                            <% if (!entry.subtaskTable){ %>
+                                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                                    data-bs-target="#addItemModal" data-column_name="Product Backlog" data-link="<%=`/addSubtask?innerIndex=${i}&from=sprintBacklog`%>"> + Add Subtask</button>
+                            <% } %>
+                        </div>
+                        </div>
+                    </li> 
+                    </div>     
+                <% } %>
+                <!-- Adding Item Form -->
+                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal"
+                    data-bs-target="#addItemModal" data-column_name="Sprint Backlog" data-link="<%= (entry.subtaskTable)?`/add?to=sprintBacklog&outerIndex=${j}`:`/add?to=sprintBacklog`%>">
+                    <%= (entry.subtaskTable)?" + Add Subtask":" + Add Item"%></button>  
+            </ul>    
+            </div>
+            </div>
+    <!-- Sprint To Do SECTION  -------------------------->
+            <div class="col column-size">
+            <div class="card tall-card">
+            <ul class="list-group list-group-flush">
+                <% for(let i = 0; i < table.sprintToDo.length; i++){ 
+                    let item = table.sprintToDo[i]
+                    let link = "/" + item.priority + ".png" 
+                    let index = ["Highest","High","Medium","Low","Lowest"].indexOf(item.priority) 
+                    let color = ["red","orange","#07944F","#00A1FF","#00E6CA"][index] 
+                    let moveLeftRoute = `/move?innerIndex=${i}&from=sprintToDo&to=sprintBacklog${ (entry.subtaskTable)?"&outerIndex="+j:"" }`
+                    let moveRightRoute = `/move?innerIndex=${i}&from=sprintToDo&to=completed${ (entry.subtaskTable)?"&outerIndex="+j:"" }`
+                    let deleteRoute = `/remove?innerIndex=${i}&from=sprintToDo${ (entry.subtaskTable)?"&outerIndex="+j:"" }` %>
+                    <div class="card border-light">
+                    <li class="list-group-item item">
+                        <span class="badge" style="background-color: <%= color%>"><%= item.priority%></span>
+                        <form action="/changeItem", method="POST">
+                        <div class="form-group row">
+                            <textarea autocomplete="off" name="description" id="description" class="form-control textarea-editable" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"' required><%= item.title%></textarea> 
+                            <input type="hidden" name="from" id="from" value="sprintToDo">
+                            <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                            <% if (entry.subtaskTable){ %>
+                                <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                            <% } %>
+                        </div>
+                        </form>
+                            
+                    
+                        </br></br> 
+
+                        <button class="btn extraInfo-btn" style="background-color:burlywood" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSTD<%= j%>-<%=i%>" aria-expanded="false" aria-controls="collapseExample">
+                            Extra Info
+                        </button> 
+
+                        <!-- Collapsible Extra Info Section -->
+                        <div class="collapse" id="collapseSTD<%= j%>-<%=i%>">
+                        <div class="card card-body">   
+                            <div class="row">
+                                <div class="col-md-9">           
+                                    <a type="button" class="btn btn-primary arrow-btn" href="<%= moveLeftRoute%>">←</a>  
+                                    <button type="button" id="completeButton" class="btn btn-primary arrow-btn" data-bs-toggle="modal" data-bs-target="#completeModal" data-link="<%= moveRightRoute%>">→</button>    <!-- HERHE HERHERHERHEHREHRHE-->                                                
+                                </div>
+                                <div class="col-md-3">
+                                    <a type="button" class="btn btn-danger delete-btn" href="<%= deleteRoute%>">Remove</a>   
+                                </div>
+                            </div> 
+                            
+                            <form style="padding-top: 10%" action="/changeItem", method="POST">
+                                <div class="form-group row">
+                                    <label for="priority" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Priority</label>  
+                                    <div class="col-md-7">                      
+                                        <select class="form-select form-select-sm" name = "priority" onchange="this.form.submit()">
+                                            <% for(const opt of ["Highest","High","Medium","Low","Lowest"]){ 
+                                                if (item.priority == opt){ %>
+                                                <option selected><%= opt %></option>
+                                            <% } else { %>
+                                                <option><%= opt %></option>
+                                            <% }} %>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="estimate" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Estimate(hrs)</label>  
+                                    <div class="col-md-7">                      
+                                        <input type="number" class="form-control" step="any" value="<%= item.estimate%>" min="0" name="estimate" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)"> 
+                                    </div>
+                                </div>
+                                <div class="form-group row" style="padding-top:3.5%;">
+                                    <label for="assignee" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Assignee</label>  
+                                    <div class="col-md-7">                      
+                                        <% if (isScrumMaster){ %>                      
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()">
+                                        <% } else { %>
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()" disabled>
+                                        <% } for(const member of teamList){ 
+                                            if (member == item.assignee){ %>
+                                                <option selected><%= member %></option>
+                                            <% } else { %>
+                                                <option><%= member %></option>
+                                            <% } %>
+                                        <% } %>
+                                        </select>    
+                                    </div>
+                                </div>
+                                <input type="hidden" name="from" id="from" value="sprintToDo">
+                                <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                                <% if (entry.subtaskTable){ %>
+                                    <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                                <% } %>
+                            </form>
+                            <% if (!entry.subtaskTable){ %>
+                                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                                    data-bs-target="#addItemModal" data-column_name="Product Backlog" data-link="<%=`/addSubtask?innerIndex=${i}&from=sprintToDo`%>"> + Add Subtask</button>
+                            <% } %>
+                        </div>
+                        </div>
+                    </li> 
+                    </div>     
+                <% } %>
+                <!-- Adding Item Form -->
+                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                    data-bs-target="#addItemModal" data-column_name="Sprint-To-Do" data-link="<%= (entry.subtaskTable)?`/add?to=sprintToDo&outerIndex=${j}`:`/add?to=sprintToDo`%>">
+                    <%= (entry.subtaskTable)?" + Add Subtask":" + Add Item"%></button> 
+            </ul>    
+            </div>
+            </div>
+    <!-- Completed SECTION  --------------------------> 
+            <div class="col column-size">
+            <div class="card tall-card">
+            <ul class="list-group list-group-flush">
+                <% for(let i = 0; i < table.completed.length; i++){ 
+                    let item = table.completed[i]
+                    let link = "/" + item.priority + ".png" 
+                    let index = ["Highest","High","Medium","Low","Lowest"].indexOf(item.priority) 
+                    let color = ["red","orange","#07944F","#00A1FF","#00E6CA"][index] 
+                    let moveLeftRoute = `/move?innerIndex=${i}&from=completed&to=sprintToDo${ (entry.subtaskTable)?"&outerIndex="+j:"" }`
+                    let deleteRoute = `/remove?innerIndex=${i}&from=completed${ (entry.subtaskTable)?"&outerIndex="+j:"" }`  %>
+                    <div class="card border-light">
+                    <li class="list-group-item item">
+                        <span class="badge" style="background-color: <%= color%>"><%= item.priority%></span>
+                        <form action="/changeItem", method="POST">
+                        <div class="form-group row">
+                            <textarea autocomplete="off" name="description" id="description" class="form-control textarea-editable" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"' required><%= item.title%></textarea> 
+                            <input type="hidden" name="from" id="from" value="completed">
+                            <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                            <% if (entry.subtaskTable){ %>
+                                <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                            <% } %>
+                        </div>
+                        </form>
+                            
+                        </br></br> 
+
+                        <button class="btn extraInfo-btn" style="background-color:burlywood" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCo<%= j%>-<%=i%>" aria-expanded="false" aria-controls="collapseExample">
+                            Extra Info
+                        </button> 
+
+                        <!-- Collapsible Extra Info Section -->
+                        <div class="collapse" id="collapseCo<%= j%>-<%=i%>">
+                        <div class="card card-body">   
+                            <div class="row">
+                                <div class="col-md-9">      
+                                    <a type="button" class="btn btn-primary arrow-btn" href=<%= moveLeftRoute%>>←</a>                                                                                           
+                                </div>
+                                <div class="col-md-3">
+                                    <a type="button" class="btn btn-danger delete-btn" href="<%= deleteRoute%>">Remove</a>   
+                                </div>
+                            </div> 
+                            
+                            <form style="padding-top: 10%" action="/changeItem", method="POST">
+                                <div class="form-group row">
+                                    <label for="priority" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Priority</label>  
+                                    <div class="col-md-7">                      
+                                        <select class="form-select form-select-sm" name = "priority" onchange="this.form.submit()">
+                                            <% for(const opt of ["Highest","High","Medium","Low","Lowest"]){ 
+                                                if (item.priority == opt){ %>
+                                                <option selected><%= opt %></option>
+                                            <% } else { %>
+                                                <option><%= opt %></option>
+                                            <% }} %>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="estimate" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Estimate(hrs)</label>  
+                                    <div class="col-md-7">                      
+                                        <input type="number" class="form-control" step="any" value="<%= item.estimate%>" min="0" name="estimate" onblur="this.form.submit()" onkeypress="submitOnEnter(event,this.form)"> 
+                                    </div>
+                                </div>
+                                <div class="form-group row" style="padding-top:3.5%;">
+                                    <label for="assignee" class="col-md-5 col-form-label" style="font-weight: bold; padding-right: 1.5%">Assignee</label>  
+                                    <div class="col-md-7">      
+                                        <% if (isScrumMaster){ %>                      
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()">
+                                        <% } else { %>
+                                            <select class="form-select form-select-sm" name="assignee" onchange="this.form.submit()" disabled>
+                                        <% } for(const member of teamList){ 
+                                            if (member == item.assignee){ %>
+                                                <option selected><%= member %></option>
+                                            <% } else { %>
+                                                <option><%= member %></option>
+                                            <% } %>
+                                        <% } %>
+                                        </select>                 
+                                    </div>
+                                </div>
+                                <input type="hidden" name="from" id="from" value="completed">
+                                <input type="hidden" name="innerIndex" id="innerIndex" value="<%= i%>">
+                                <% if (entry.subtaskTable){ %>
+                                    <input type="hidden" name="outerIndex" id="outerIndex" value="<%= j%>">
+                                <% } %>
+                            </form>
+                            <% if (!entry.subtaskTable){ %>
+                                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                                    data-bs-target="#addItemModal" data-column_name="Product Backlog" data-link="<%=`/addSubtask?innerIndex=${i}&from=completed`%>"> + Add Subtask</button>
+                            <% } %>
+                        </div>
+                        </div>
+                    </li> 
+                    </div>     
+                <% } %>
+                <!-- Adding Item Form -->
+                <button type="button" class="btn" style="outline: none; padding-left: 30px; text-align:left" data-bs-toggle="modal" 
+                    data-bs-target="#addItemModal" data-column_name="Completed" data-link="<%= (entry.subtaskTable)?`/add?to=completed&outerIndex=${j}`:`/add?to=completed`%>">
+                    <%= (entry.subtaskTable)?" + Add Subtask":" + Add Item"%></button>
+            </ul>   
+            </div> 
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+    <!-- Add Item Modal Form -->
+    <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="addItemModalLabel">Add Item to</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="addItemForm" action="/add/completed", method="POST"> 
+                <div class="mb-3">
+                    <label for="description" class="col-form-label">Item Description:</label>
+                    <textarea name="descriptionForm" id="descriptionForm" class="form-control"  placeholder="Description" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="priority" class="col-form-label">Priority:</label>
+                    <select class="form-select form-select-sm" name ="priority">
+                        <option>Highest</option>
+                        <option>High</option>
+                        <option selected>Medium</option>
+                        <option>Low</option>
+                        <option>Lowest</option>
+                    </select>
+                </div>
+                <div class="mb-3" style="display: none" id="completionDayAdd">
+                    <label for="completionDay" class="col-form-label">Day of Completion(from start of Sprint)</label>
+                    <input type="number" class="form-control" step="1" max="365" min="0" name="completionDay" id="completionDay">  
+                </div>
+                <div class="mb-3">
+                    <label for="estimate" class="col-form-label">Story Point Estimate(in hours):</label>
+                    <input type="number" class="form-control" step="any" value="1" min="0" name="estimate">
+                </div>
+                <div class="mb-3">
+                    <label for="assignee" class="col-form-label">Assignee:</label>
+                    <% if (isScrumMaster){ %>                      
+                        <select class="form-select form-select-sm" name="assignee">
+                    <% } else { %>
+                        <select class="form-select form-select-sm" name="assignee" disabled>
+                    <% } for(const member of teamList){ 
+                        if (member == 'Unassigned'){ %>
+                            <option selected><%= member %></option>
+                        <% } else { %>
+                            <option><%= member %></option>
+                        <% } %>
+                    <% } %>
+                    </select>  
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" form="addItemForm" class="btn btn-primary">Add</button>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Update Supertask Modal Form -->
+    <div class="modal fade" id="updateSupertaskModal" tabindex="-1" aria-labelledby="updateSupertaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="updateSupertaskModalLabel">Edit Supertask</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="updateSupertaskForm" action="/updateSupertask", method="POST"> 
+                <div class="mb-3">
+                    <label for="priority" class="col-form-label">Priority:</label>
+                    <select class="form-select form-select-sm" name ="priority">
+                        <option name="Highest">Highest</option>
+                        <option name="High">High</option>
+                        <option name="Medium">Medium</option>
+                        <option name="Low">Low</option>
+                        <option name="Lowest">Lowest</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="col-form-label">Location:</label>
+                    <select class="form-select form-select-sm" name ="location" onchange="addCompletionDay()">
+                        <option name="productBacklog" value="productBacklog">Product Backlog</option>
+                        <option name="sprintBacklog" value="sprintBacklog">Sprint Backlog</option>
+                        <option name="sprintToDo" value="sprintToDo">Sprint-To-Do</option>
+                        <option name="completed" value="completed">Completed</option>
+                    </select>
+                </div >
+                <div class="mb-3" style="display: none" id="completionDaySupertask">
+                    <label for="completionDay" class="col-form-label">Day of Completion(from start of Sprint)</label>
+                    <input type="number" class="form-control" step="1" max="365" min="0" name="completionDay" id="completionDay">  
+                </div>
+                <div class="mb-3">
+                    <label for="estimate" class="col-form-label">Story Point Estimate(in hours):</label>
+                    <input type="number" class="form-control" step="any" value="1" min="0" name="estimate">
+                </div>
+                <div class="mb-3">
+                    <label for="assignee" class="col-form-label">Assignee:</label>
+                    <% if (isScrumMaster){ %>                      
+                        <select class="form-select form-select-sm" name="assignee" id="updateSupertaskAssignee">
+                    <% } else { %>
+                        <select class="form-select form-select-sm" name="assignee" id="updateSupertaskAssignee" disabled>
+                    <% } for(const member of teamList){  %>
+                        <option name="<%= member %>"><%= member %></option>
+                    <% } %>
+                    </select>  
+                </div>
+                <input type="hidden" name="outerIndex" id="outerIndex">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <a type="button" class="btn btn-danger" href="/removeSupertask" id="removeSupertaskButton">Delete</a>
+            <button type="submit" form="updateSupertaskForm" class="btn btn-primary">Edit</button>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Move To Completed -->
+    <div class="modal fade" id="completeModal" tabindex="-1" aria-labelledby="completeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="completeModalLabel">Move Item to Completed</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="completionDay" class="col-form-label">Day Of Completion(from start of Sprint)</label>
+                <input type="number" class="form-control" step="1" max="365" min="0" name="completionDay" id="completionDay" required>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" id="completeForm" href="" class="btn btn-primary">Move</button>
+        </div>
+    </div>
+    </div>
+    </div>
+    
+    <script type="text/javascript">
+        initialiseAllTextAreaSize();
+    </script>
+</body>
+</html>
