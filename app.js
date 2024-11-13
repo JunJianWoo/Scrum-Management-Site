@@ -49,7 +49,7 @@ app.get('/my-tasks', function(req,res) {
 })
 
 app.listen(PORT_NUMBER, function () {
-    console.log(`listening on port number http://localhost:${PORT_NUMBER}`);
+    console.log(`listening on port number http://localhost:${PORT_NUMBER}/board`);
 });
 
 app.use((req, res) => {

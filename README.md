@@ -19,6 +19,4 @@ On a separate terminal, serve up the App:
 > node app.js
 ```
 
-Head to the login page: http://localhost:8080/login
-
-An existing username is "username" and password is "12345".
+Head to the board page: http://localhost:8080/board
